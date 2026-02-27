@@ -1,3 +1,5 @@
+"""Database engine, session management, and initialization helpers."""
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, text
@@ -13,6 +15,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:
+    """Yield a database session for request-scoped usage."""
     db = SessionLocal()
     try:
         yield db
@@ -21,6 +24,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
+    """Ensure required extensions exist and create tables."""
     with engine.begin() as conn:
         try:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))

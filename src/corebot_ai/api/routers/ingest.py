@@ -1,3 +1,5 @@
+"""Ingestion API routes."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -19,6 +21,7 @@ async def upload_document(
     db: Session = Depends(get_db),
     embedder: Embedder = Depends(get_embedder),
 ) -> dict[str, str]:
+    """Ingest an uploaded document and return its id."""
     content = await file.read()
     try:
         doc_id = await ingest_pipeline(

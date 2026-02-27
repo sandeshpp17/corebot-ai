@@ -2,9 +2,9 @@
 name = "corebot-ai"
 version = "0.1.0"
 description = "Pluggable RAG chatbot with CLI and API"
-readme = "README.md"
+readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.12"
-authors = [{ name = "Your Name" }]
+authors = [{ name = "Sandesh pawar" }]
 dependencies = [
   "fastapi==0.115.0",
   "uvicorn[standard]==0.32.0",
@@ -17,6 +17,8 @@ dependencies = [
   "rich==13.9.3",
   "click==8.1.7",
   "pytest>=8.3.3",
+  "pydocstyle>=6.3.0",
+  "mkdocs>=1.6.1",
 ]
 
 [project.scripts]

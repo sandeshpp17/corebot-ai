@@ -1,3 +1,5 @@
+"""Structured logging helpers."""
+
 from __future__ import annotations
 
 import json
@@ -7,7 +9,10 @@ from datetime import datetime, timezone
 
 
 class JsonFormatter(logging.Formatter):
+    """Format log records as JSON objects."""
+
     def format(self, record: logging.LogRecord) -> str:
+        """Serialize a log record to JSON."""
         payload = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
@@ -20,6 +25,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: int = logging.INFO) -> None:
+    """Configure root logger with JSON output."""
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
 

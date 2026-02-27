@@ -1,3 +1,5 @@
+"""RAG pipeline orchestration."""
+
 from __future__ import annotations
 
 import logging
@@ -19,6 +21,7 @@ async def rag_chat(
     llm: LLM,
     db: Session,
 ) -> dict:
+    """Generate a response using retrieval-augmented generation."""
     contexts: list[dict] = []
     try:
         contexts = await retrieve(

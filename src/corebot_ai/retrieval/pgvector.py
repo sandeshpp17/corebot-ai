@@ -1,3 +1,5 @@
+"""pgvector-based semantic retrieval implementation."""
+
 from __future__ import annotations
 
 from sqlalchemy import text
@@ -13,6 +15,7 @@ async def retrieve(
     top_k: int = 5,
     min_score: float = 0.7,
 ) -> list[dict[str, str | float]]:
+    """Retrieve top matching chunks for a query."""
     query_emb = (await embedder.embed([query]))[0]
     vector_literal = "[" + ",".join(str(x) for x in query_emb) + "]"
 

@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models for documents and embedded chunks."""
+
 from __future__ import annotations
 
 from uuid import uuid4
@@ -11,10 +13,14 @@ from corebot_ai.config import settings
 
 
 class Base(DeclarativeBase):
+    """Base ORM class for all database models."""
+
     pass
 
 
 class Document(Base):
+    """Metadata for an ingested document."""
+
     __tablename__ = "documents"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -30,6 +36,8 @@ class Document(Base):
 
 
 class DocumentChunk(Base):
+    """Chunked document content and its embedding vector."""
+
     __tablename__ = "document_chunks"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)

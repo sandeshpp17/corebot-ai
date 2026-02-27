@@ -1,3 +1,5 @@
+"""Chat API routes and request/response schemas."""
+
 from __future__ import annotations
 
 import asyncio
@@ -17,17 +19,23 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 class ChatRequest(BaseModel):
+    """Incoming chat request payload."""
+
     message: str = Field(min_length=1)
     history: list[dict] = Field(default_factory=list)
 
 
 class SourceItem(BaseModel):
+    """Source snippet metadata in chat responses."""
+
     content: str
     source: str
     score: float
 
 
 class ChatResponse(BaseModel):
+    """Chat response payload."""
+
     reply: str
     sources: list[SourceItem]
     context_used: int
@@ -40,6 +48,7 @@ async def chat(
     embedder: Embedder = Depends(get_embedder),
     llm: LLM = Depends(get_llm),
 ) -> dict:
+    """Return an assistant reply for a user message."""
     try:
         return await rag_chat(request.message, request.history, embedder, llm, db)
     except ResponseError as exc:

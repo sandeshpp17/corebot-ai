@@ -27,6 +27,7 @@ Set embedding size for `phi3:mini`:
 ```bash
 EMBEDDING_DIM=3072
 OLLAMA_TIMEOUT_SEC=120
+OLLAMA_EMBED_CONCURRENCY=4
 ```
 
 ## CLI
@@ -34,6 +35,7 @@ OLLAMA_TIMEOUT_SEC=120
 ```bash
 uv run corebot ingest README.md
 uv run corebot ingest README.md --host http://localhost:8000
+uv run corebot ingest README.md --host http://localhost:8000 --timeout 300
 uv run corebot chat
 uv run corebot chat --host http://localhost:8000
 ```
@@ -74,5 +76,3 @@ only if it is not already installed.
 By default, chat and embedding both use `phi3:mini`.
 
 If you change model or embedding dimension, recreate the database tables/volume.
-
-Note: with `EMBEDDING_DIM > 2000` (like `phi3:mini` at 3072), Corebot skips the `ivfflat` index because pgvector does not allow that index at this size.

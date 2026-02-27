@@ -53,6 +53,7 @@ services:
       OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-phi3:mini}
       EMBEDDING_DIM: ${EMBEDDING_DIM:-3072}
       OLLAMA_TIMEOUT_SEC: ${OLLAMA_TIMEOUT_SEC:-120}
+      OLLAMA_EMBED_CONCURRENCY: ${OLLAMA_EMBED_CONCURRENCY:-4}
     depends_on:
       postgres:
         condition: service_healthy

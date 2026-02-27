@@ -1,3 +1,5 @@
+"""File-format text extraction helpers."""
+
 from __future__ import annotations
 
 
@@ -6,6 +8,7 @@ def _decode_bytes(content: bytes) -> str:
 
 
 async def extract_text(content: bytes, mime_type: str) -> str:
+    """Extract plain text from supported MIME types."""
     handlers = {
         "text/markdown": _decode_bytes,
         "text/plain": _decode_bytes,

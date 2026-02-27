@@ -1,3 +1,5 @@
+"""Document ingestion pipeline implementation."""
+
 from __future__ import annotations
 
 import json
@@ -12,6 +14,7 @@ from corebot_ai.models import Document, DocumentChunk
 
 
 def smart_chunk(text: str, chunk_size: int, overlap: int) -> list[str]:
+    """Split text into overlapping fixed-size chunks."""
     if not text.strip():
         return []
 
@@ -34,6 +37,7 @@ async def ingest_pipeline(
     db: Session,
     embedder: Embedder,
 ) -> UUID:
+    """Extract, chunk, embed, and persist a document."""
     text = await extract_text(content, mime_type)
     chunks = smart_chunk(text, chunk_size=settings.chunk_size, overlap=settings.chunk_overlap)
 

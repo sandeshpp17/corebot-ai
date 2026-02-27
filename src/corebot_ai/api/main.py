@@ -1,3 +1,5 @@
+"""FastAPI application factory and route registration."""
+
 from __future__ import annotations
 
 from fastapi import FastAPI
@@ -10,6 +12,7 @@ from corebot_ai.database import init_db
 
 
 def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
     app = FastAPI(title=settings.app_name, version="0.1.0")
 
     app.add_middleware(

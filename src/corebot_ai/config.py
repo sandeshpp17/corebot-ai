@@ -1,3 +1,5 @@
+"""Application settings loaded from environment variables."""
+
 from functools import lru_cache
 
 from pydantic import Field
@@ -5,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Runtime configuration for API, database, and model settings."""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "corebot-ai"
@@ -19,6 +23,7 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "phi3:mini"
     embedding_dim: int = 3072
     ollama_timeout_sec: int = 120
+    ollama_embed_concurrency: int = 4
 
     chunk_size: int = 900
     chunk_overlap: int = 120
@@ -28,6 +33,7 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Return a cached settings instance."""
     return Settings()
 
 
