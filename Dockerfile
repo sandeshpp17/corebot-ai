@@ -9,7 +9,7 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Copy ALL project files for build + runtime
-COPY pyproject.toml uv.lock* README.md src ./
+COPY pyproject.toml uv.lock* README.md src .env ./
 
 # Install deps + project (editable-style, no wheel)
 RUN --mount=type=cache,target=/root/.cache/uv \

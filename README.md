@@ -64,10 +64,11 @@ Chat controls:
 - `POST /ingest/documents` (multipart file upload)
 - `POST /ingest/documents/async` (background ingestion job)
 - `GET /ingest/jobs/{job_id}` (ingestion job status)
-- `POST /chat/` with JSON body: `{"message": "...", "history": []}`
+- `POST /chat/` with JSON body:
+  `{"message":"...","history":[],"mode":"auto|info|incident","app_context":{...}}`
 - `GET /health`
 
-All non-health endpoints require `X-API-Key`.
+Integration requirement: set `API_KEY` and send `X-API-Key` on all non-health endpoints.
 
 Chat test:
 
@@ -75,7 +76,16 @@ Chat test:
 curl -i -X POST "http://localhost:8000/chat/" \
   -H "X-API-Key: corebot-dev-key" \
   -H "Content-Type: application/json" \
-  -d '{"message":"what is corebotai","history":[]}'
+  -d '{"message":"what is corebotai","history":[],"mode":"info"}'
+```
+
+Incident-mode example for webapp integration:
+
+```bash
+curl -i -X POST "http://localhost:8000/chat/" \
+  -H "X-API-Key: corebot-dev-key" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Checkout keeps failing with 500","mode":"incident","history":[],"app_context":{"trace_id":"abc-123","session_id":"s-42","app_version":"1.9.2"}}'
 ```
 
 ## Architecture
@@ -84,8 +94,15 @@ curl -i -X POST "http://localhost:8000/chat/" \
 - `corebot_ai/ingestion`: extraction + chunking + embedding + persistence
 - `corebot_ai/retrieval`: semantic search with pgvector
 - `corebot_ai/rag`: retrieve + prompt + generate pipeline
+- `corebot_ai/assistant`: auto-routing between info and incident assistance
+- `corebot_ai/tools`: pluggable diagnostics providers for webapp integrations
 - `corebot_ai/api`: FastAPI app and routers
 - `corebot_ai/cli.py`: `ingest`, `chat`, `serve`
+
+Webapp diagnostics tool settings:
+- `WEBAPP_TOOLS_ENABLED=true`
+- `WEBAPP_DIAGNOSTICS_BASE_URL=https://your-webapp-api`
+- `WEBAPP_DIAGNOSTICS_TOKEN=...`
 
 ## Docker
 

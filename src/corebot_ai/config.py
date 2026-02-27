@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
-    api_key: str = "corebot-dev-key"
+    api_key: str = ""
     cors_allow_origins: str = "http://localhost:3000"
     cors_allow_methods: str = "GET,POST,OPTIONS"
     cors_allow_headers: str = "Authorization,Content-Type,X-API-Key"
@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     allowed_mime_types: str = "text/plain,text/markdown,application/json"
     max_ingest_jobs: int = 200
     ingest_job_ttl_sec: int = 3600
+
+    webapp_tools_enabled: bool = False
+    webapp_diagnostics_base_url: str = ""
+    webapp_diagnostics_token: str = ""
 
     def parse_csv(self, value: str) -> list[str]:
         """Parse comma-separated setting values."""
