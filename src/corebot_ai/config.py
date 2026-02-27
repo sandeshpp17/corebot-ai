@@ -20,14 +20,17 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://localhost:11434"
     ollama_chat_model: str = "phi3:mini"
-    ollama_embed_model: str = "phi3:mini"
-    embedding_dim: int = 3072
+    ollama_embed_model: str = "nomic-embed-text"
+    embedding_dim: int = 768
     ollama_timeout_sec: int = 120
-    ollama_embed_concurrency: int = 4
+    ollama_embed_concurrency: int = 8
 
-    chunk_size: int = 900
-    chunk_overlap: int = 120
-    retrieve_top_k: int = 5
+    redis_url: str | None = "redis://localhost:6379/0"
+    cache_ttl_sec: int = 300
+
+    chunk_size: int = 600
+    chunk_overlap: int = 60
+    retrieve_top_k: int = 3
     retrieve_min_score: float = 0.6
 
 

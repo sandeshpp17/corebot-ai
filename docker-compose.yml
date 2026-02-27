@@ -35,12 +35,26 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-phi3:mini}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
     entrypoint:
       - /bin/sh
       - -c
       - |
         ollama show "$OLLAMA_CHAT_MODEL" >/dev/null 2>&1 || ollama pull "$OLLAMA_CHAT_MODEL"
+        if [ "$OLLAMA_EMBED_MODEL" != "$OLLAMA_CHAT_MODEL" ]; then
+          ollama show "$OLLAMA_EMBED_MODEL" >/dev/null 2>&1 || ollama pull "$OLLAMA_EMBED_MODEL"
+        fi
     restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   api:
     build: .
@@ -50,10 +64,12 @@ services:
       DATABASE_URL: postgresql+psycopg2://${DB_USER:-corebot}:${DB_PASS:-corebot}@postgres:5432/corebot
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-phi3:mini}
-      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-phi3:mini}
-      EMBEDDING_DIM: ${EMBEDDING_DIM:-3072}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
       OLLAMA_TIMEOUT_SEC: ${OLLAMA_TIMEOUT_SEC:-120}
-      OLLAMA_EMBED_CONCURRENCY: ${OLLAMA_EMBED_CONCURRENCY:-4}
+      OLLAMA_EMBED_CONCURRENCY: ${OLLAMA_EMBED_CONCURRENCY:-8}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CACHE_TTL_SEC: ${CACHE_TTL_SEC:-300}
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,6 +77,8 @@ services:
         condition: service_healthy
       ollama-init:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+import asyncio
+from uuid import uuid4
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from ollama import ResponseError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -10,9 +13,37 @@ from sqlalchemy.orm import Session
 from corebot_ai.api.deps import get_db, get_embedder
 from corebot_ai.backends.base import Embedder
 from corebot_ai.config import settings
+from corebot_ai.database import SessionLocal
 from corebot_ai.ingestion.pipeline import ingest_pipeline
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
+ingest_jobs: dict[str, dict[str, str | None]] = {}
+
+
+def _run_ingest_job(job_id: str, filename: str, content: bytes, mime_type: str) -> None:
+    """Run ingestion in background and record job status."""
+    db = SessionLocal()
+    embedder = get_embedder()
+    ingest_jobs[job_id] = {
+        "status": "running",
+        "document_id": None,
+        "error": None,
+    }
+    try:
+        doc_id = asyncio.run(ingest_pipeline(filename, content, mime_type, db, embedder))
+        ingest_jobs[job_id] = {
+            "status": "completed",
+            "document_id": str(doc_id),
+            "error": None,
+        }
+    except Exception as exc:
+        ingest_jobs[job_id] = {
+            "status": "failed",
+            "document_id": None,
+            "error": str(exc),
+        }
+    finally:
+        db.close()
 
 
 @router.post("/documents")
@@ -52,3 +83,35 @@ async def upload_document(
             ),
         ) from exc
     return {"document_id": str(doc_id)}
+
+
+@router.post("/documents/async")
+async def upload_document_async(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+) -> dict[str, str]:
+    """Queue ingestion job and return a job identifier."""
+    content = await file.read()
+    job_id = str(uuid4())
+    ingest_jobs[job_id] = {
+        "status": "queued",
+        "document_id": None,
+        "error": None,
+    }
+    background_tasks.add_task(
+        _run_ingest_job,
+        job_id,
+        file.filename or "unknown",
+        content,
+        file.content_type or "text/plain",
+    )
+    return {"job_id": job_id, "status": "queued"}
+
+
+@router.get("/jobs/{job_id}")
+def get_ingest_job(job_id: str) -> dict[str, str | None]:
+    """Return ingestion job status by id."""
+    job = ingest_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    return job

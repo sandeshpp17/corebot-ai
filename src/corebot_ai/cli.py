@@ -10,6 +10,10 @@ from pathlib import Path
 from urllib import error, request
 
 import click
+from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import InMemoryHistory
+from sqlalchemy.orm import Session
 import uvicorn
 from rich.console import Console
 from rich.table import Table
@@ -98,6 +102,30 @@ def _chat_remote(host: str, message: str, history: list[dict], timeout: int) -> 
         ) from exc
 
 
+def _show_sources(result: dict) -> None:
+    """Render source table for a chat result."""
+    sources = result.get("sources") or []
+    if not sources:
+        return
+    table = Table(title="Sources")
+    table.add_column("Source")
+    table.add_column("Score")
+    for src in sources:
+        table.add_row(str(src["source"]), f"{float(src['score']):.3f}")
+    console.print(table)
+
+
+def _pop_last_turn(history: list[dict]) -> str | None:
+    """Remove and return the last user message if a full turn exists."""
+    if len(history) < 2:
+        return None
+    if history[-2].get("role") != "user" or history[-1].get("role") != "assistant":
+        return None
+    last_user_message = str(history[-2].get("content", ""))
+    del history[-2:]
+    return last_user_message
+
+
 @main.command()
 @click.argument("file", type=click.Path(exists=True, path_type=Path))
 @click.option("--host", type=str, default=None, help="Corebot API base URL, e.g. http://localhost:8000")
@@ -128,57 +156,100 @@ def ingest(file: Path, host: str | None, timeout: int) -> None:
 def chat(host: str | None, timeout: int) -> None:
     """Run an interactive RAG chat session."""
     history: list[dict] = []
+    prompt_session = PromptSession(history=InMemoryHistory(), auto_suggest=AutoSuggestFromHistory())
+
+    def _send(message: str, db: Session | None = None) -> dict:
+        if host:
+            return _chat_remote(host, message, history, timeout)
+        assert db is not None
+        return asyncio.run(rag_chat(message, history, get_embedder(), get_llm(), db))
+
+    def _process_message(message: str, db: Session | None = None) -> None:
+        result = _send(message, db)
+        history.extend(
+            [
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": result["reply"]},
+            ]
+        )
+        console.print(f"[bold green]Bot:[/bold green] {result['reply']}")
+        _show_sources(result)
 
     if host:
-        console.print(f"Remote chat mode: [cyan]{host}[/cyan]. Type `exit` to quit.")
+        console.print(
+            "Remote chat mode: "
+            f"[cyan]{host}[/cyan]. Commands: /help, /undo, /edit, /history, exit"
+        )
         while True:
-            message = click.prompt("You")
-            if message.lower().strip() in {"exit", "quit"}:
+            message = prompt_session.prompt("You: ").strip()
+            if not message:
+                continue
+            if message.lower() in {"exit", "quit"}:
                 break
-
-            result = _chat_remote(host, message, history, timeout)
-            history.extend(
-                [
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": result["reply"]},
-                ]
-            )
-
-            console.print(f"[bold green]Bot:[/bold green] {result['reply']}")
-            if result.get("sources"):
-                table = Table(title="Sources")
-                table.add_column("Source")
-                table.add_column("Score")
-                for src in result["sources"]:
-                    table.add_row(str(src["source"]), f"{float(src['score']):.3f}")
-                console.print(table)
+            if message == "/help":
+                console.print("Commands: /help, /undo, /edit, /history, exit")
+                continue
+            if message == "/history":
+                turns = sum(1 for m in history if m.get("role") == "user")
+                console.print(f"Turns: {turns}")
+                continue
+            if message == "/undo":
+                removed = _pop_last_turn(history)
+                if removed is None:
+                    console.print("No complete turn to undo.")
+                else:
+                    console.print("Removed last turn.")
+                continue
+            if message == "/edit":
+                last = _pop_last_turn(history)
+                if last is None:
+                    console.print("No previous turn to edit.")
+                    continue
+                edited = prompt_session.prompt("Edit last message: ", default=last).strip()
+                if not edited:
+                    console.print("Edit cancelled.")
+                    continue
+                _process_message(edited)
+                continue
+            _process_message(message)
         return
 
     init_db()
     db = SessionLocal()
     try:
-        console.print("Local chat mode. Type `exit` to quit.")
+        console.print("Local chat mode. Commands: /help, /undo, /edit, /history, exit")
         while True:
-            message = click.prompt("You")
-            if message.lower().strip() in {"exit", "quit"}:
+            message = prompt_session.prompt("You: ").strip()
+            if not message:
+                continue
+            if message.lower() in {"exit", "quit"}:
                 break
-
-            result = asyncio.run(rag_chat(message, history, get_embedder(), get_llm(), db))
-            history.extend(
-                [
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": result["reply"]},
-                ]
-            )
-
-            console.print(f"[bold green]Bot:[/bold green] {result['reply']}")
-            if result["sources"]:
-                table = Table(title="Sources")
-                table.add_column("Source")
-                table.add_column("Score")
-                for src in result["sources"]:
-                    table.add_row(str(src["source"]), f"{float(src['score']):.3f}")
-                console.print(table)
+            if message == "/help":
+                console.print("Commands: /help, /undo, /edit, /history, exit")
+                continue
+            if message == "/history":
+                turns = sum(1 for m in history if m.get("role") == "user")
+                console.print(f"Turns: {turns}")
+                continue
+            if message == "/undo":
+                removed = _pop_last_turn(history)
+                if removed is None:
+                    console.print("No complete turn to undo.")
+                else:
+                    console.print("Removed last turn.")
+                continue
+            if message == "/edit":
+                last = _pop_last_turn(history)
+                if last is None:
+                    console.print("No previous turn to edit.")
+                    continue
+                edited = prompt_session.prompt("Edit last message: ", default=last).strip()
+                if not edited:
+                    console.print("Edit cancelled.")
+                    continue
+                _process_message(edited, db)
+                continue
+            _process_message(message, db)
     finally:
         db.close()
 
