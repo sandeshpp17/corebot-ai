@@ -10,6 +10,12 @@ cp .env.example .env
 uv run corebot --help
 ```
 
+Set API key for CLI remote mode:
+
+```bash
+export COREBOT_API_KEY=corebot-dev-key
+```
+
 ## Run
 
 ```bash
@@ -61,10 +67,13 @@ Chat controls:
 - `POST /chat/` with JSON body: `{"message": "...", "history": []}`
 - `GET /health`
 
+All non-health endpoints require `X-API-Key`.
+
 Chat test:
 
 ```bash
 curl -i -X POST "http://localhost:8000/chat/" \
+  -H "X-API-Key: corebot-dev-key" \
   -H "Content-Type: application/json" \
   -d '{"message":"what is corebotai","history":[]}'
 ```

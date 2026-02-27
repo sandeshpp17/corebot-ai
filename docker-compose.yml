@@ -61,6 +61,11 @@ services:
     ports:
       - "8000:8000"
     environment:
+      API_KEY: ${API_KEY:-corebot-dev-key}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000}
+      CORS_ALLOW_METHODS: ${CORS_ALLOW_METHODS:-GET,POST,OPTIONS}
+      CORS_ALLOW_HEADERS: ${CORS_ALLOW_HEADERS:-Authorization,Content-Type,X-API-Key}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-false}
       DATABASE_URL: postgresql+psycopg2://${DB_USER:-corebot}:${DB_PASS:-corebot}@postgres:5432/corebot
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-phi3:mini}
@@ -70,6 +75,12 @@ services:
       OLLAMA_EMBED_CONCURRENCY: ${OLLAMA_EMBED_CONCURRENCY:-8}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CACHE_TTL_SEC: ${CACHE_TTL_SEC:-300}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
+      MAX_HISTORY_MESSAGES: ${MAX_HISTORY_MESSAGES:-20}
+      MAX_MESSAGE_CHARS: ${MAX_MESSAGE_CHARS:-4000}
+      ALLOWED_MIME_TYPES: ${ALLOWED_MIME_TYPES:-text/plain,text/markdown,application/json}
+      MAX_INGEST_JOBS: ${MAX_INGEST_JOBS:-200}
+      INGEST_JOB_TTL_SEC: ${INGEST_JOB_TTL_SEC:-3600}
     depends_on:
       postgres:
         condition: service_healthy

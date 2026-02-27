@@ -45,7 +45,7 @@ def _build_multipart(file: Path) -> tuple[bytes, str]:
     return body, boundary
 
 
-def _ingest_remote(host: str, file: Path, timeout: int) -> str:
+def _ingest_remote(host: str, file: Path, timeout: int, api_key: str) -> str:
     """Upload a file to a remote Corebot ingest endpoint."""
     body, boundary = _build_multipart(file)
     url = f"{host.rstrip('/')}/ingest/documents"
@@ -53,7 +53,10 @@ def _ingest_remote(host: str, file: Path, timeout: int) -> str:
         url=url,
         method="POST",
         data=body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "X-API-Key": api_key,
+        },
     )
     try:
         with request.urlopen(req, timeout=timeout) as resp:
@@ -74,7 +77,7 @@ def _ingest_remote(host: str, file: Path, timeout: int) -> str:
         ) from exc
 
 
-def _chat_remote(host: str, message: str, history: list[dict], timeout: int) -> dict:
+def _chat_remote(host: str, message: str, history: list[dict], timeout: int, api_key: str) -> dict:
     """Send a chat request to a remote Corebot API."""
     url = f"{host.rstrip('/')}/chat/"
     payload = json.dumps({"message": message, "history": history}).encode("utf-8")
@@ -82,7 +85,7 @@ def _chat_remote(host: str, message: str, history: list[dict], timeout: int) -> 
         url=url,
         method="POST",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "X-API-Key": api_key},
     )
     try:
         with request.urlopen(req, timeout=timeout) as resp:
@@ -130,10 +133,17 @@ def _pop_last_turn(history: list[dict]) -> str | None:
 @click.argument("file", type=click.Path(exists=True, path_type=Path))
 @click.option("--host", type=str, default=None, help="Corebot API base URL, e.g. http://localhost:8000")
 @click.option("--timeout", type=int, default=300, show_default=True, help="HTTP timeout in seconds.")
-def ingest(file: Path, host: str | None, timeout: int) -> None:
+@click.option(
+    "--api-key",
+    envvar="COREBOT_API_KEY",
+    default=settings.api_key,
+    show_default=False,
+    help="API key for remote endpoints (or set COREBOT_API_KEY).",
+)
+def ingest(file: Path, host: str | None, timeout: int, api_key: str) -> None:
     """Ingest a document file."""
     if host:
-        doc_id = _ingest_remote(host, file, timeout)
+        doc_id = _ingest_remote(host, file, timeout, api_key)
         console.print(
             f"Ingested [bold]{file}[/bold] via [cyan]{host}[/cyan] as document [green]{doc_id}[/green]"
         )
@@ -153,14 +163,21 @@ def ingest(file: Path, host: str | None, timeout: int) -> None:
 @main.command()
 @click.option("--host", type=str, default=None, help="Corebot API base URL, e.g. http://localhost:8000")
 @click.option("--timeout", type=int, default=120, show_default=True, help="HTTP timeout in seconds.")
-def chat(host: str | None, timeout: int) -> None:
+@click.option(
+    "--api-key",
+    envvar="COREBOT_API_KEY",
+    default=settings.api_key,
+    show_default=False,
+    help="API key for remote endpoints (or set COREBOT_API_KEY).",
+)
+def chat(host: str | None, timeout: int, api_key: str) -> None:
     """Run an interactive RAG chat session."""
     history: list[dict] = []
     prompt_session = PromptSession(history=InMemoryHistory(), auto_suggest=AutoSuggestFromHistory())
 
     def _send(message: str, db: Session | None = None) -> dict:
         if host:
-            return _chat_remote(host, message, history, timeout)
+            return _chat_remote(host, message, history, timeout, api_key)
         assert db is not None
         return asyncio.run(rag_chat(message, history, get_embedder(), get_llm(), db))
 

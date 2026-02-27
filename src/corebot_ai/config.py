@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
+    api_key: str = "corebot-dev-key"
+    cors_allow_origins: str = "http://localhost:3000"
+    cors_allow_methods: str = "GET,POST,OPTIONS"
+    cors_allow_headers: str = "Authorization,Content-Type,X-API-Key"
+    cors_allow_credentials: bool = False
 
     database_url: str = Field(default="postgresql+psycopg2://corebot:corebot@localhost:5432/corebot")
 
@@ -32,6 +37,16 @@ class Settings(BaseSettings):
     chunk_overlap: int = 60
     retrieve_top_k: int = 3
     retrieve_min_score: float = 0.6
+    max_upload_bytes: int = 5 * 1024 * 1024
+    max_history_messages: int = 20
+    max_message_chars: int = 4000
+    allowed_mime_types: str = "text/plain,text/markdown,application/json"
+    max_ingest_jobs: int = 200
+    ingest_job_ttl_sec: int = 3600
+
+    def parse_csv(self, value: str) -> list[str]:
+        """Parse comma-separated setting values."""
+        return [item.strip() for item in value.split(",") if item.strip()]
 
 
 @lru_cache(maxsize=1)

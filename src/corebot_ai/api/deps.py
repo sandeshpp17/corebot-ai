@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import secrets
 from functools import lru_cache
+
+from fastapi import Header, HTTPException
 
 from corebot_ai.backends.base import Embedder, LLM
 from corebot_ai.backends.ollama import OllamaEmbedder, OllamaLLM
@@ -32,4 +35,10 @@ def get_llm() -> LLM:
     )
 
 
-__all__ = ["get_db", "get_embedder", "get_llm"]
+def require_api_key(x_api_key: str = Header(default="", alias="X-API-Key")) -> None:
+    """Reject requests missing a valid API key."""
+    if not secrets.compare_digest(x_api_key, settings.api_key):
+        raise HTTPException(status_code=401, detail="Invalid API key.")
+
+
+__all__ = ["get_db", "get_embedder", "get_llm", "require_api_key"]

@@ -10,12 +10,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from corebot_ai.api.deps import get_db, get_embedder, get_llm
+from corebot_ai.api.deps import get_db, get_embedder, get_llm, require_api_key
 from corebot_ai.backends.base import Embedder, LLM
 from corebot_ai.config import settings
 from corebot_ai.rag.pipeline import rag_chat
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(prefix="/chat", tags=["chat"], dependencies=[Depends(require_api_key)])
 
 
 class ChatRequest(BaseModel):
@@ -49,6 +49,16 @@ async def chat(
     llm: LLM = Depends(get_llm),
 ) -> dict:
     """Return an assistant reply for a user message."""
+    if len(request.message) > settings.max_message_chars:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Message too long. Max allowed is {settings.max_message_chars} characters.",
+        )
+    if len(request.history) > settings.max_history_messages:
+        raise HTTPException(
+            status_code=422,
+            detail=f"History too large. Max allowed is {settings.max_history_messages} entries.",
+        )
     try:
         return await rag_chat(request.message, request.history, embedder, llm, db)
     except ResponseError as exc:
