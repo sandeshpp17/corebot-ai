@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+import socket
 from uuid import uuid4
 from urllib import error as urllib_error
 from urllib import request as urllib_request
@@ -98,10 +99,10 @@ def api_get_todos():
 
 def _corebot_headers() -> dict[str, str]:
     """Build headers for Corebot API calls."""
-    return {
-        "Content-Type": "application/json",
-        "X-API-Key": COREBOT_API_KEY,
-    }
+    headers = {"Content-Type": "application/json"}
+    if COREBOT_API_KEY.strip():
+        headers["X-API-Key"] = COREBOT_API_KEY
+    return headers
 
 
 def _call_corebot_chat(payload: dict) -> tuple[dict, int]:
@@ -125,46 +126,50 @@ def _call_corebot_chat(payload: dict) -> tuple[dict, int]:
         return parsed, int(exc.code)
     except urllib_error.URLError as exc:
         return {"detail": f"Corebot unreachable: {exc.reason}"}, 503
+    except TimeoutError:
+        return {"detail": "Corebot request timed out."}, 504
+    except socket.timeout:
+        return {"detail": "Corebot request timed out."}, 504
+    except Exception as exc:
+        return {"detail": f"Unexpected integration error: {exc}"}, 500
 
 
 @app.route('/assistant/chat', methods=['POST'])
 def assistant_chat():
     """Proxy chat requests from web UI to Corebot."""
-    if not COREBOT_API_KEY.strip():
-        return jsonify({
-            "detail": "COREBOT_API_KEY is required for integration. Set it in Flask environment."
-        }), 500
+    try:
+        body = request.get_json(silent=True) or {}
+        message = str(body.get("message", "")).strip()
+        if not message:
+            return jsonify({"detail": "message is required"}), 400
 
-    body = request.get_json(silent=True) or {}
-    message = str(body.get("message", "")).strip()
-    if not message:
-        return jsonify({"detail": "message is required"}), 400
+        history = body.get("history", [])
+        if not isinstance(history, list):
+            history = []
 
-    history = body.get("history", [])
-    if not isinstance(history, list):
-        history = []
+        mode = str(body.get("mode", "auto")).strip().lower()
+        if mode not in {"auto", "info", "incident"}:
+            mode = "auto"
 
-    mode = str(body.get("mode", "auto")).strip().lower()
-    if mode not in {"auto", "info", "incident"}:
-        mode = "auto"
+        app_context = body.get("app_context", {})
+        if not isinstance(app_context, dict):
+            app_context = {}
 
-    app_context = body.get("app_context", {})
-    if not isinstance(app_context, dict):
-        app_context = {}
+        app_context.setdefault("app_name", "todo-app")
+        app_context.setdefault("app_version", APP_VERSION)
+        app_context.setdefault("session_id", request.cookies.get("session", "web-session"))
+        app_context.setdefault("trace_id", request.headers.get("X-Trace-Id", str(uuid4())))
 
-    app_context.setdefault("app_name", "todo-app")
-    app_context.setdefault("app_version", APP_VERSION)
-    app_context.setdefault("session_id", request.cookies.get("session", "web-session"))
-    app_context.setdefault("trace_id", request.headers.get("X-Trace-Id", str(uuid4())))
-
-    payload = {
-        "message": message,
-        "history": history,
-        "mode": mode,
-        "app_context": app_context,
-    }
-    data, status = _call_corebot_chat(payload)
-    return jsonify(data), status
+        payload = {
+            "message": message,
+            "history": history,
+            "mode": mode,
+            "app_context": app_context,
+        }
+        data, status = _call_corebot_chat(payload)
+        return jsonify(data), status
+    except Exception as exc:
+        return jsonify({"detail": f"assistant_chat failed: {exc}"}), 500
 
 
 @app.route('/support/context', methods=['GET'])

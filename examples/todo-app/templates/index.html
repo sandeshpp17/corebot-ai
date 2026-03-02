@@ -1,245 +1,385 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask Todo App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1, h2 { color: #333; }
-        .todo-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button, .button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-        button:hover, .button:hover {
-            background-color: #45a049;
-        }
-        .todo-item {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .todo-item.complete {
-            opacity: 0.6;
-            text-decoration: line-through;
-        }
-        .actions {
-            margin-top: 10px;
-        }
-        .delete-btn {
-            background-color: #f44336;
-        }
-        .delete-btn:hover {
-            background-color: #da190b;
-        }
-        .chat-panel {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .chat-log {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 12px;
-            min-height: 140px;
-            max-height: 280px;
-            overflow-y: auto;
-            background: #fafafa;
-            margin-bottom: 12px;
-        }
-        .chat-entry {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 6px;
-        }
-        .chat-entry.user { background: #e8f4ff; }
-        .chat-entry.bot { background: #f3f7ed; }
-        .chat-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .chat-row select, .chat-row input[type="text"] {
-            margin: 0;
-        }
-        .chat-meta {
-            color: #555;
-            font-size: 0.9em;
-            margin-top: 6px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flask Todo App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    h1, h2 {
+      color: #333;
+    }
+
+    .todo-form {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    button, .button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    button:hover, .button:hover {
+      background-color: #45a049;
+    }
+
+    .todo-item {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .todo-item.complete {
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+
+    .actions {
+      margin-top: 10px;
+    }
+
+    .delete-btn {
+      background-color: #f44336;
+    }
+
+    .delete-btn:hover {
+      background-color: #da190b;
+    }
+
+
+    /* floating chat button in bottom right */
+    .chat-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: background-color 0.2s;
+    }
+
+    .chat-button:hover {
+      background-color: #45a049;
+    }
+
+    /* slide‑in panel from right */
+    .chat-panel-outer {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100%;
+      max-width: 100%;
+      background: white;
+      border-left: 1px solid #ddd;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+      transition: right 0.3s ease-in-out;
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-panel-outer.visible {
+      right: 0;
+    }
+
+    .chat-panel-header {
+      padding: 16px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .chat-panel-header .close-btn {
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #e0e0e0;
+    }
+
+    .chat-panel-body {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* chat log and controls */
+    .chat-log {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 140px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+
+    .chat-entry {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .chat-entry.user {
+      background: #e8f4ff;
+    }
+
+    .chat-entry.bot {
+      background: #f3f7ed;
+    }
+
+    .chat-meta {
+      color: #555;
+      font-size: 0.9em;
+      margin-top: 6px;
+    }
+
+    .chat-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .chat-row select,
+    .chat-row input[type="text"] {
+      margin: 0;
+    }
+  </style>
 </head>
 <body>
-    <h1>📝 Test Todo App</h1>
+  <h1>📝 Test Todo App</h1>
 
-    <div class="chat-panel">
-        <h2>Corebot Assistant</h2>
-        <div id="chat-log" class="chat-log"></div>
-        <div class="chat-row">
-            <select id="chat-mode">
-                <option value="auto">auto</option>
-                <option value="info">info</option>
-                <option value="incident">incident</option>
-            </select>
-            <input id="chat-input" type="text" placeholder="Ask Corebot..." />
-            <button id="chat-send" type="button">Send</button>
-            <button id="chat-clear" type="button" class="delete-btn">Clear</button>
-        </div>
+  <!-- floating chat button -->
+  <div id="chat-button" class="chat-button">💬</div>
+
+  <!-- slide‑in chat panel -->
+  <div id="chat-panel" class="chat-panel-outer">
+    <div class="chat-panel-header">
+      Corebot Assistant
+      <span id="chat-panel-close" class="close-btn">×</span>
     </div>
-    
-    <div class="todo-form">
-        <h2>Add New Todo</h2>
-        <form action="{{ url_for('add') }}" method="POST">
-            <input type="text" name="title" placeholder="Todo title" required>
-            <textarea name="description" placeholder="Description (optional)" rows="3"></textarea>
-            <button type="submit">Add Todo</button>
-        </form>
+    <div class="chat-panel-body">
+      <div id="chat-log" class="chat-log"></div>
+      <div class="chat-row">
+        <select id="chat-mode">
+          <option value="auto">auto</option>
+          <option value="info">info</option>
+          <option value="incident">incident</option>
+        </select>
+        <input
+          id="chat-input"
+          type="text"
+          placeholder="Ask Corebot..."
+        />
+        <button id="chat-send" type="button">Send</button>
+        <button id="chat-clear" type="button" class="delete-btn">Clear</button>
+      </div>
     </div>
+  </div>
 
-    <h2>📋 Incomplete Items ({{ incomplete|length }})</h2>
-    {% if incomplete %}
-        {% for todo in incomplete %}
-        <div class="todo-item">
-            <h3>{{ todo.title }}</h3>
-            {% if todo.description %}
-                <p>{{ todo.description }}</p>
-            {% endif %}
-            <small>Created: {{ todo.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
-            <div class="actions">
-                <a href="{{ url_for('complete', id=todo.id) }}" class="button">✓ Complete</a>
-                <a href="{{ url_for('delete', id=todo.id) }}" class="button delete-btn">✗ Delete</a>
-            </div>
+  <div class="todo-form">
+    <h2>Add New Todo</h2>
+    <form action="{{ url_for('add') }}" method="POST">
+      <input
+        type="text"
+        name="title"
+        placeholder="Todo title"
+        required
+      />
+      <textarea
+        name="description"
+        placeholder="Description (optional)"
+        rows="3"
+      ></textarea>
+      <button type="submit">Add Todo</button>
+    </form>
+  </div>
+
+  <h2>📋 Incomplete Items ({{ incomplete|length }})</h2>
+  {% if incomplete %}
+    {% for todo in incomplete %}
+      <div class="todo-item">
+        <h3>{{ todo.title }}</h3>
+        {% if todo.description %}
+          <p>{{ todo.description }}</p>
+        {% endif %}
+        <small>
+          Created: {{ todo.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </small>
+        <div class="actions">
+          <a href="{{ url_for('complete', id=todo.id) }}" class="button">✓ Complete</a>
+          <a href="{{ url_for('delete', id=todo.id) }}" class="button delete-btn">✗ Delete</a>
         </div>
-        {% endfor %}
-    {% else %}
-        <p>No incomplete todos! 🎉</p>
-    {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No incomplete todos! 🎉</p>
+  {% endif %}
 
-    <h2>✅ Completed Items ({{ complete|length }})</h2>
-    {% if complete %}
-        {% for todo in complete %}
-        <div class="todo-item complete">
-            <h3>{{ todo.title }}</h3>
-            {% if todo.description %}
-                <p>{{ todo.description }}</p>
-            {% endif %}
-            <div class="actions">
-                <a href="{{ url_for('delete', id=todo.id) }}" class="button delete-btn">✗ Delete</a>
-            </div>
+  <h2>✅ Completed Items ({{ complete|length }})</h2>
+  {% if complete %}
+    {% for todo in complete %}
+      <div class="todo-item complete">
+        <h3>{{ todo.title }}</h3>
+        {% if todo.description %}
+          <p>{{ todo.description }}</p>
+        {% endif %}
+        <div class="actions">
+          <a href="{{ url_for('delete', id=todo.id) }}" class="button delete-btn">✗ Delete</a>
         </div>
-        {% endfor %}
-    {% else %}
-        <p>No completed todos yet.</p>
-    {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No completed todos yet.</p>
+  {% endif %}
 
-    <script>
-        const chatLog = document.getElementById('chat-log');
-        const chatInput = document.getElementById('chat-input');
-        const chatMode = document.getElementById('chat-mode');
-        const chatSend = document.getElementById('chat-send');
-        const chatClear = document.getElementById('chat-clear');
-        let chatHistory = [];
+  <script>
+    const chatLog = document.getElementById('chat-log');
+    const chatInput = document.getElementById('chat-input');
+    const chatMode = document.getElementById('chat-mode');
+    const chatSend = document.getElementById('chat-send');
+    const chatClear = document.getElementById('chat-clear');
+    let chatHistory = [];
 
-        function appendMessage(role, text, extra = '') {
-            const entry = document.createElement('div');
-            entry.className = `chat-entry ${role}`;
-            entry.innerHTML = `<strong>${role === 'user' ? 'You' : 'Corebot'}:</strong> ${text}`;
-            if (extra) {
-                const meta = document.createElement('div');
-                meta.className = 'chat-meta';
-                meta.textContent = extra;
-                entry.appendChild(meta);
+    function appendMessage(role, text, extra = '') {
+      const entry = document.createElement('div');
+      entry.className = `chat-entry ${role}`;
+      entry.innerHTML = `<strong>${role === 'user' ? 'You' : 'Corebot'}:</strong> ${text}`;
+      if (extra) {
+        const meta = document.createElement('div');
+        meta.className = 'chat-meta';
+        meta.textContent = extra;
+        entry.appendChild(meta);
+      }
+      chatLog.appendChild(entry);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    async function sendChat() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      appendMessage('user', message);
+      chatInput.value = '';
+
+      try {
+        const response = await fetch('/assistant/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            mode: chatMode.value,
+            history: chatHistory,
+            app_context: {
+              app: 'todo-app',
+              page: 'index'
             }
-            chatLog.appendChild(entry);
-            chatLog.scrollTop = chatLog.scrollHeight;
+          })
+        });
+        const raw = await response.text();
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (parseError) {
+          appendMessage('bot', `Request failed (${response.status}): ${raw.slice(0, 200)}`);
+          return;
         }
 
-        async function sendChat() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            appendMessage('user', message);
-            chatInput.value = '';
-
-            try {
-                const response = await fetch('/assistant/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message,
-                        mode: chatMode.value,
-                        history: chatHistory,
-                        app_context: {
-                            app: 'todo-app',
-                            page: 'index'
-                        }
-                    })
-                });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    appendMessage('bot', `Request failed: ${data.detail || response.statusText}`);
-                    return;
-                }
-
-                const extras = [];
-                if (data.mode) extras.push(`mode=${data.mode}`);
-                if (data.diagnostics_status) extras.push(`diagnostics=${data.diagnostics_status}`);
-                if (Array.isArray(data.actions) && data.actions.length) {
-                    extras.push(`actions: ${data.actions.join(' | ')}`);
-                }
-                appendMessage('bot', data.reply || 'No response.', extras.join(' | '));
-
-                chatHistory.push(
-                    { role: 'user', content: message },
-                    { role: 'assistant', content: data.reply || '' }
-                );
-            } catch (err) {
-                appendMessage('bot', `Error: ${err}`);
-            }
+        if (!response.ok) {
+          appendMessage('bot', `Request failed: ${data.detail || response.statusText}`);
+          return;
         }
 
-        chatSend.addEventListener('click', sendChat);
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') sendChat();
-        });
-        chatClear.addEventListener('click', () => {
-            chatHistory = [];
-            chatLog.innerHTML = '';
-        });
-    </script>
+        const extras = [];
+        if (data.mode) extras.push(`mode=${data.mode}`);
+        if (data.diagnostics_status) extras.push(`diagnostics=${data.diagnostics_status}`);
+        if (Array.isArray(data.actions) && data.actions.length) {
+          extras.push(`actions: ${data.actions.join(' | ')}`);
+        }
+        appendMessage('bot', data.reply || 'No response.', extras.join(' | '));
+
+        chatHistory.push(
+          { role: 'user', content: message },
+          { role: 'assistant', content: data.reply || '' }
+        );
+      } catch (err) {
+        appendMessage('bot', `Error: ${err}`);
+      }
+    }
+
+    chatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendChat();
+    });
+    chatClear.addEventListener('click', () => {
+      chatHistory = [];
+      chatLog.innerHTML = '';
+    });
+
+    // Toggle chat panel on button click
+    const chatButton = document.getElementById('chat-button');
+    const chatPanel = document.getElementById('chat-panel');
+    const chatPanelClose = document.getElementById('chat-panel-close');
+
+    chatButton.addEventListener('click', () => {
+      chatPanel.classList.toggle('visible');
+    });
+
+    chatPanelClose.addEventListener('click', () => {
+      chatPanel.classList.remove('visible');
+    });
+
+    // Close panel on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && chatPanel.classList.contains('visible')) {
+        chatPanel.classList.remove('visible');
+      }
+    });
+  </script>
 </body>
 </html>
