@@ -20,6 +20,14 @@ func chatCorebot(
         "app_context": appContext
     ]
     request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-    let (data, _) = try await URLSession.shared.data(for: request)
+    let (data, response) = try await URLSession.shared.data(for: request)
+    if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+        let body = String(data: data, encoding: .utf8) ?? ""
+        throw NSError(
+            domain: "Corebot",
+            code: http.statusCode,
+            userInfo: [NSLocalizedDescriptionKey: "Corebot request failed (\(http.statusCode)): \(body)"]
+        )
+    }
     return data
 }
