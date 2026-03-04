@@ -6,7 +6,7 @@ Production-grade, pluggable RAG chatbot with CLI + FastAPI.
 
 Install these first:
 
-- Docker + Docker Compose (official): https://docs.docker.com/get-docker/
+- Docker + Docker Compose (official): https://docs.docker.com/engine/install/
 - `uv` package manager (official): https://docs.astral.sh/uv/getting-started/installation/
 
 Optional but useful for local model checks:
